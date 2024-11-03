@@ -7,11 +7,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract TokenFaucet is ReentrancyGuard, Ownable {
     string public name = "Test Token";
     string public symbol = "TEST";
-    uint8 public decimals = 18;
-    uint256 public totalSupply = 1000000 * (10 ** uint256(decimals));
+    uint256 public totalSupply = 1000000 * (10 **18);
     mapping(address => uint256) public balanceOf;
     
-    uint256 public distributionAmount = 100 * (10**decimals); 
+    uint256 public distributionAmount = 100 * (10**18); 
     uint256 public cooldownPeriod = 2 minutes;
 
     mapping(address => uint256) public lastClaimTime;
@@ -26,10 +25,10 @@ contract TokenFaucet is ReentrancyGuard, Ownable {
 
     function transfer(address to, uint256 amount) public returns (bool) {
         require(to != address(0), "Transfer to the zero address");
-        require(balanceOf[msg.sender] >= amount, "Insufficient balance");
+        require(balanceOf[msg.sender] >= amount* (10**18), "Insufficient balance");
 
-        balanceOf[msg.sender] -= amount;
-        balanceOf[to] += amount;
+        balanceOf[msg.sender] -= amount* (10**18);
+        balanceOf[to] += amount* (10**18);
         emit Transfer(msg.sender, to, amount);
         return true;
     }
@@ -37,13 +36,14 @@ contract TokenFaucet is ReentrancyGuard, Ownable {
     function claimTokens() external nonReentrant {
         require( block.timestamp >= lastClaimTime[msg.sender] + cooldownPeriod,
          "Please wait for cooldown period" );
-         
+
         require(balanceOf[address(this)] >= distributionAmount,
             "Insufficient tokens in faucet");
 
         lastClaimTime[msg.sender] = block.timestamp;
         balanceOf[address(this)] -= distributionAmount;
         balanceOf[msg.sender] += distributionAmount;
+
 
         emit TokensClaimed(msg.sender, distributionAmount);
         emit Transfer(address(this), msg.sender, distributionAmount);
