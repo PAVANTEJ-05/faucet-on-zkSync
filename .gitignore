@@ -11,7 +11,7 @@ lerna-debug.log*
 artifacts
 cache
 
-# zksync artifacts
+# zksync artifacts 
 artifacts-zk
 cache-zk
 
