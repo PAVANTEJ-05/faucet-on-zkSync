@@ -1,36 +1,44 @@
 import * as hre from "hardhat";
 import { getWallet } from "./utils";
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
+import {  formatUnits } from "ethers";
+import * as dotenv from "dotenv";
+dotenv.config();
 
-// Address of the contract to interact with
-const CONTRACT_ADDRESS = "";
-if (!CONTRACT_ADDRESS) throw "⛔️ Provide address of the contract to interact with!";
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS as string;
+if (!CONTRACT_ADDRESS) throw new Error("⛔️ Provide address of the contract to interact with in the .env file!");
 
-// An example of a script to interact with the contract
 export default async function () {
-  console.log(`Running script to interact with contract ${CONTRACT_ADDRESS}`);
+  console.log(`Running script to interact with contract at ${CONTRACT_ADDRESS}`);
 
-  // Load compiled contract info
-  const contractArtifact = await hre.artifacts.readArtifact("Greeter");
+  const contractArtifact = await hre.artifacts.readArtifact("TokenFaucet");
 
-  // Initialize contract instance for interaction
-  const contract = new ethers.Contract(
-    CONTRACT_ADDRESS,
-    contractArtifact.abi,
-    getWallet() // Interact with the contract on behalf of this wallet
-  );
+  const tokenFaucet = new ethers.Contract( CONTRACT_ADDRESS, contractArtifact.abi, getWallet());
 
-  // Run contract read function
-  const response = await contract.greet();
-  console.log(`Current message is: ${response}`);
+  async function claimTokens() {
+    try {
+      const transaction = await tokenFaucet.claimTokens();
+      console.log(`Transaction hash for claiming tokens: ${transaction.hash}`);
+      await transaction.wait();
+      console.log("Tokens claimed successfully.");
+    } catch (error) {
+      console.error("Error claiming tokens:", error);
+    }
+  }
 
-  // Run contract write function
-  const transaction = await contract.setGreeting("Hello people!");
-  console.log(`Transaction hash of setting new message: ${transaction.hash}`);
 
-  // Wait until transaction is processed
-  await transaction.wait();
+  async function checkBalance(address: string) {
+    try {
+      const balance = await tokenFaucet.balanceOf(address);
+      console.log(`Balance of ${address}: ${formatUnits(balance, 18)} tokens`);
+    } catch (error) {
+      console.error("Error checking balance:", error);
+    }
+  }
 
-  // Read message after transaction
-  console.log(`The message now is: ${await contract.greet()}`);
+  console.log(" claiming tokens...");
+  await claimTokens();
+
+  console.log("Checking balance of the wallet...");
+  await checkBalance(getWallet().address);
 }
